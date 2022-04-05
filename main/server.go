@@ -61,36 +61,29 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resultChan := make(chan response, 1)
-	go testing(apiRequest, resultChan)
+	go processWebsiteThumbnail(apiRequest, resultChan)
 	res := <-resultChan
-	fmt.Printf(res.screenshot)
 	close(resultChan)
-	// go func (apiRequest, w, screenshotAPIResponse) {
-	// go processWebsiteThumbnail(apiRequest, w, screenshotAPIResponse)
-	// 	if err != nil {
-	// 		log.Fatal("Error occured while getting data")
-	// 	}
-	// 	fmt.Printf(string(screenshot))
-	// }
 
-	// jsonResp, err := json.Marshal(response)
+	if err != nil {
+		log.Fatalf("Error occured %s", err)
+	}
+	fmt.Println(string(res.screenshot))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(res.screenshot))
 
-	// fmt.Printf(string(jsonResp))
-
-	// w.Header().Set("Content-Type", "application/json")
-	// w.WriteHeader(http.StatusOK)
-	// w.Write(jsonResp)
-
-	// if err != nil {
-	// 	log.Fatalf("Error occured %s", err)
-	// }
+	fmt.Println("Processing job ....🔥")
 	fmt.Printf("Got the following url: %s\n", decoded.Url)
 }
 
-func testing(apiRequest screenshotAPIRequest, resultChan chan response) {
-	// name := apiRequest.Url
+/*
+ * A go routine that fetches data from an endpoint
+ */
+func processWebsiteThumbnail(apiRequest screenshotAPIRequest, resultChan chan response) {
 	apiUrl := os.Getenv("API_URL")
 	apiToken := os.Getenv("API_TOKEN")
+
 	resp, err := http.Get(apiUrl + "/screenshot?token=" + apiToken + "&url=" + apiRequest.Url)
 	if err != nil {
 		log.Fatal("Error occured while getting image..", err)
@@ -100,38 +93,7 @@ func testing(apiRequest screenshotAPIRequest, resultChan chan response) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	res := json.Unmarshal(body, &response{})
-	fmt.Println(string(body))
-	// res := response{screenshot: name}
-	resultChan <- string(res)
+
+	res := response{screenshot: string(body)}
+	resultChan <- res
 }
-
-func checkError(err error) {
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
-// func processWebsiteThumbnail(apiRequest screenshotAPIRequest, w http.ResponseWriter, screenshot screenshotAPIResponse) {
-
-// 	apiUrl := os.Getenv("API_URL")
-// 	apiToken := os.Getenv("API_TOKEN")
-
-// 	fmt.Printf(apiUrl)
-
-// 	response, err := http.Get(apiUrl + "/screenshot?token=" + apiToken + "&url=" + apiRequest.Url)
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	fmt.Println("Processing job ....🔥")
-
-// 	err = json.NewDecoder(response.Body).Decode(&screenshot)
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return screenshot, nil
-// }
