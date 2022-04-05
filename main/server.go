@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type thumbnailRequest struct {
@@ -13,7 +16,6 @@ type thumbnailRequest struct {
 }
 
 type screenshotAPIRequest struct {
-	Token          string `json:"token"`
 	Url            string `json:"url"`
 	Output         string `json:"output"`
 	Width          int    `json:"width"`
@@ -21,11 +23,17 @@ type screenshotAPIRequest struct {
 	ThumbnailWidth int    `json:"thumbnail_width"`
 }
 
-type screenshotAPIResponse struct {
-	screenshot string `json"screenshot"`
+type response struct {
+	screenshot string `json:"screenshot"`
 }
 
 func main() {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)
 
@@ -45,7 +53,6 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	apiRequest := screenshotAPIRequest{
-		Token:          "6FK6XW3-K4HMDYD-HWNCT73-MV8M0EH",
 		Url:            decoded.Url,
 		Output:         "json",
 		Width:          1920,
@@ -53,8 +60,50 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 		ThumbnailWidth: 300,
 	}
 
-	go processWebsiteThumbnail(apiRequest, w)
+	resultChan := make(chan response, 1)
+	go testing(apiRequest, resultChan)
+	res := <-resultChan
+	fmt.Printf(res.screenshot)
+	close(resultChan)
+	// go func (apiRequest, w, screenshotAPIResponse) {
+	// go processWebsiteThumbnail(apiRequest, w, screenshotAPIResponse)
+	// 	if err != nil {
+	// 		log.Fatal("Error occured while getting data")
+	// 	}
+	// 	fmt.Printf(string(screenshot))
+	// }
+
+	// jsonResp, err := json.Marshal(response)
+
+	// fmt.Printf(string(jsonResp))
+
+	// w.Header().Set("Content-Type", "application/json")
+	// w.WriteHeader(http.StatusOK)
+	// w.Write(jsonResp)
+
+	// if err != nil {
+	// 	log.Fatalf("Error occured %s", err)
+	// }
 	fmt.Printf("Got the following url: %s\n", decoded.Url)
+}
+
+func testing(apiRequest screenshotAPIRequest, resultChan chan response) {
+	// name := apiRequest.Url
+	apiUrl := os.Getenv("API_URL")
+	apiToken := os.Getenv("API_TOKEN")
+	resp, err := http.Get(apiUrl + "/screenshot?token=" + apiToken + "&url=" + apiRequest.Url)
+	if err != nil {
+		log.Fatal("Error occured while getting image..", err)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	res := json.Unmarshal(body, &response{})
+	fmt.Println(string(body))
+	// res := response{screenshot: name}
+	resultChan <- string(res)
 }
 
 func checkError(err error) {
@@ -63,20 +112,26 @@ func checkError(err error) {
 	}
 }
 
-func processWebsiteThumbnail(apiRequest screenshotAPIRequest, w http.ResponseWriter) {
-	req, err := http.NewRequest("GET", "https://shot.screenshotapi.net/screenshot?token="+apiRequest.Token+"&url="+apiRequest.Url, nil)
-	req.Header.Set("Content-Type", "application/json")
+// func processWebsiteThumbnail(apiRequest screenshotAPIRequest, w http.ResponseWriter, screenshot screenshotAPIResponse) {
 
-	response, err := (&http.Client{}).Do(req)
-	fmt.Println("Processing job ....🔥")
-	checkError(err)
+// 	apiUrl := os.Getenv("API_URL")
+// 	apiToken := os.Getenv("API_TOKEN")
 
-	defer response.Body.Close()
-	var body []byte
-	body, err = ioutil.ReadAll(response.Body)
-	checkError(err)
+// 	fmt.Printf(apiUrl)
 
-	json.NewEncoder(w).Encode(body)
+// 	response, err := http.Get(apiUrl + "/screenshot?token=" + apiToken + "&url=" + apiRequest.Url)
 
-	_, err = fmt.Fprintf(w, `{ "screenshot": "%s" }`, body)
-}
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	fmt.Println("Processing job ....🔥")
+
+// 	err = json.NewDecoder(response.Body).Decode(&screenshot)
+
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return screenshot, nil
+// }

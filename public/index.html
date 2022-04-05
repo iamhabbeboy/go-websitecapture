@@ -24,7 +24,7 @@
     </div>
 
     <script>
-        function generate() {
+        async function generate() {
             const url = document.querySelector("#url");
             const api = "http://localhost:3000"
             const payload = { url: url.value}
@@ -36,20 +36,29 @@
                 },
                 body: JSON.stringify(payload)
             }
-            
-            fetch(`${api}/api/thumbnail`, options)
-            .then(function(data) {
-                if(!data.ok) {
-                    throw Error(data.status)
-                }
-                return data.json()
-            })
-            .then(function(update) {
-                console.log(update)
-            })
-            .catch(function(error) {
-                console.log('error occured')
-            })
+
+            const response = await fetch(`${api}/api/thumbnail`, options);
+            if (response.status >= 200 && response.status <= 299) {
+                const jsonResponse = await response.json();
+                console.log(jsonResponse);
+            } else {
+                // Handle errors
+                console.log(response);
+            }
+
+            // fetch(`${api}/api/thumbnail`, options)
+            // .then(function(data) {
+            //     if(!data.ok) {
+            //         throw Error(data.status)
+            //     }
+            //     return data.json()
+            // })
+            // .then(function(update) {
+            //     console.log(update)
+            // })
+            // .catch(function(error) {
+            //     console.log('error occured')
+            // })
         }
     </script>
   </body>
