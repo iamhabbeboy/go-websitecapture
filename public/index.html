@@ -4,9 +4,15 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
       <!--- The other stuff in the head tag here... -->
       <title> Web App</title>
-
+    <style>
+        body {
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+    </style>
   </head>
-  <body>
+  <body id="body-elem">
 
     <div class="container mt-3">
         <div class="row">
@@ -16,18 +22,34 @@
                     <input type="url" class="form-control" name="url" id="url"/>
                     <p></p>
                     <p>
-                        <button class="btn btn-primary btn-lg" onclick="generate()">Generate</button>
+                        <button class="btn btn-primary btn-lg" onclick="generate(this)">Generate 
+                            <img src="./reload.svg" width="20" id="loader" style="display:none"/>
+                        </button>
                     </p>
+
+                    <div id="preview">
+
+                    </div>
                 <!-- </form> -->
             </div>
         </div>
     </div>
 
     <script>
-        async function generate() {
+        async function generate(e) {
             const url = document.querySelector("#url");
+            const loader = document.querySelector('#loader')
+            const preview = document.querySelector('#preview')
             const api = "http://localhost:3000"
             const payload = { url: url.value}
+
+            if(url.value === '') {
+                alert("Url is required")
+                return url.focus();
+            }
+            loader.style.display = 'inline'
+            // e.target.setAttribute('disabled', 'disabled')
+            console.log(e)
 
             const options = {
                 method: 'POST',
@@ -38,27 +60,18 @@
             }
 
             const response = await fetch(`${api}/api/thumbnail`, options);
+            loader.style.display = 'none'
             if (response.status >= 200 && response.status <= 299) {
                 const jsonResponse = await response.json();
                 console.log(jsonResponse);
+                if(!jsonResponse && jsonResponse.screenshot) {
+                    return alert("An error occured while retreiving from endpoint!")
+                }
+                preview.innerHTML = `<img src="${jsonResponse.screenshot}" width="100%"/>` 
             } else {
                 // Handle errors
                 console.log(response);
             }
-
-            // fetch(`${api}/api/thumbnail`, options)
-            // .then(function(data) {
-            //     if(!data.ok) {
-            //         throw Error(data.status)
-            //     }
-            //     return data.json()
-            // })
-            // .then(function(update) {
-            //     console.log(update)
-            // })
-            // .catch(function(error) {
-            //     console.log('error occured')
-            // })
         }
     </script>
   </body>
